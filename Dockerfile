@@ -1,23 +1,25 @@
-# Use the official Golang image as the base image
-FROM golang:1.20-alpine
-
-# Set the Current Working Directory inside the container
+# Multi-stage dockerfile
+FROM golang:1.23 AS builder
 WORKDIR /app
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
-# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+# Download all dependencies
 RUN go mod download
 
-# Copy the source from the current directory to the Working Directory inside the container
+# Copy the source code
 COPY . .
 
 # Build the Go app
-RUN go build -o main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o myApp .
 
-# Expose port 8080 to the outside world
+FROM alpine:3.20
+WORKDIR /server
+
+# Install tzdata for time zone support
+RUN apk add --no-cache tzdata
+
+COPY --from=builder /app/myApp .
 EXPOSE 8080
-
-# Command to run the executable
-CMD ["./main"]
+CMD ["./myApp"]

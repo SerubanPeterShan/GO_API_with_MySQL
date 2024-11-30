@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -14,21 +15,36 @@ type TimeResponse struct {
 	CurrentTime string `json:"current_time"`
 }
 
-func main() {
-	http.HandleFunc("/current-time", currentTimeHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
+var db *sql.DB
 
-func currentTimeHandler(w http.ResponseWriter, r *http.Request) {
-	// Connect to the database
-	db, err := sql.Open("mysql", "root:my-secret-pw@tcp(54.219.52.229:3306)/my_database")
+func main() {
+	var err error
+	// Get environment variables
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbName := os.Getenv("DB_NAME")
+
+	// Connect to MySQL database
+	dsn := dbUser + ":" + dbPassword + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName
+	db, err = sql.Open("mysql", dsn)
 	if err != nil {
-		http.Error(w, "Database connection error", http.StatusInternalServerError)
-		log.Println("Database connection error:", err)
-		return
+		log.Fatalf("Error opening database: %v", err)
 	}
 	defer db.Close()
 
+	// Verify connection
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("Error connecting to database: %v", err)
+	}
+
+	http.HandleFunc("/current-time", currentTimeHandler)
+	log.Fatal(http.ListenAndServe(":80", nil))
+}
+
+func currentTimeHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the current time in Toronto
 	loc, err := time.LoadLocation("America/Toronto")
 	if err != nil {
