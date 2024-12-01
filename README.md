@@ -16,6 +16,10 @@ A containerized Go API service that provides current time and time log functiona
 - Docker Compose
 - Git
 
+## Architecture
+
+![Application Architecture](Architecture%20API.svg)
+
 ## Quick Start
 
 1. Clone the repository:
