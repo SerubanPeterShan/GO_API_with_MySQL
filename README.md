@@ -13,6 +13,9 @@ A containerized Go API service that provides current time and time log functiona
 ## Prerequisites
 
 - Docker
+  - MySQL :latest
+  - Golang : 1.23
+  - Alpine :3.20
 - Docker Compose
 - Git
 
