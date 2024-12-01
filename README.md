@@ -40,6 +40,207 @@ docker-compose up -d
 
 3. The API will be available at `http://localhost:80`
 
+## Custom Start
+
+To customize the start of the application, you can modify the `docker-compose.yml` file or the environment variables as needed.
+
+1. Modify the `docker-compose.yml` file to change the database credentials or other configurations:
+
+```yaml
+version: '3.8'
+services:
+  database:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      # Database environment variables
+      # Set the root password for MySQL
+      MYSQL_ROOT_PASSWORD: <new-rootpass-word>
+      # Set the name of the database to be created
+      MYSQL_DATABASE: <new-timedb>
+      # Set the MySQL user
+      MYSQL_USER: <new-user>
+      # Set the password for the MySQL user
+      MYSQL_PASSWORD: <new-password>
+      TZ: America/Toronto
+    ports:
+      - "3306:3306" #3306:<can change the this port number>
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "newuser", "-p$$MYSQL_PASSWORD"]
+      interval: 8s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: GO_TIME_API
+    ports:
+      - "80:80"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      DB_HOST: database
+      DB_PORT: 3306
+      # Set the MySQL user
+      DB_USER: <newuser>
+      # Set the password for the MySQL user
+      DB_PASSWORD: <new-password>
+      # Set the name of the database
+      DB_NAME: <new-db-name>
+      TZ: America/Toronto
+
+volumes:
+  db_data:
+
+networks:
+  default:
+    driver: bridge
+```
+
+2. Start the containers with the modified configuration:
+
+```bash
+docker-compose up -d
+```
+
+3. The API will be available at `http://localhost:80` with the new configurations.
+
+## Manual Configuration Without Docker Compose
+
+### Manual Configuration Using Docker
+
+If you prefer to manually configure and run the application using Docker without Docker Compose, follow these steps:
+
+### MySQL Setup
+
+1. **Pull the MySQL Docker Image**:
+
+```bash
+docker pull mysql:latest
+```
+
+2. **Run the MySQL Container**:
+
+```bash
+docker run --name mysql -e MYSQL_ROOT_PASSWORD=rootpassword -e MYSQL_DATABASE=timedb -e MYSQL_USER=newuser -e MYSQL_PASSWORD=new-password -e TZ=America/Toronto -p 3306:3306 -v db_data:/var/lib/mysql -d mysql:latest
+```
+
+3. **Initialize the Database**:
+
+  - Copy the `init.sql` script to the MySQL container and run it to set up the necessary tables and timezone settings:
+
+```bash
+docker cp init.sql mysql:/init.sql
+docker exec -it mysql mysql -u newuser -pnew-password timedb < /init.sql
+```
+
+### Go Application Setup
+
+1. **Build the Go Application Docker Image**:
+
+```bash
+docker build -t go_time_api .
+```
+
+2. **Run the Go Application Container**:
+
+```bash
+docker run --name go_time_api -e DB_HOST=mysql -e DB_PORT=3306 -e DB_USER=newuser -e DB_PASSWORD=new-password -e DB_NAME=timedb -e TZ=America/Toronto --link mysql:mysql -p 80:80 -d go_time_api
+```
+
+3. **Access the API**:
+
+  - The API will be available at `http://localhost:80`.
+
+By following these steps, you can manually configure and run the Go API with MySQL using Docker without Docker Compose.
+
+### Manual Configuration without docker
+
+If you prefer to manually configure and run the application without using Docker Compose, follow these steps:
+
+#### MySQL Setup
+
+1. **Install MySQL**:
+
+- Download and install MySQL from the official website: [MySQL Downloads](https://dev.mysql.com/downloads/).
+
+2. **Configure MySQL**:
+
+- Start the MySQL server.
+- Create a new database and user:
+
+  ```sql
+  CREATE DATABASE timedb;
+  CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'new-password';
+  GRANT ALL PRIVILEGES ON timedb.* TO 'newuser'@'localhost';
+  FLUSH PRIVILEGES;
+  ```
+
+3. **Initialize the Database**:
+
+- Run the `init.sql` script to set up the necessary tables and timezone settings:
+
+  ```bash
+  mysql -u newuser -p new-password timedb < init.sql
+  ```
+
+### Go Application Setup
+
+1. **Install Go**:
+
+- Download and install Go from the official website: [Go Downloads](https://golang.org/dl/).
+
+2. **Clone the Repository**:
+
+  ```bash
+  git clone https://github.com/SerubanPeterShan/GO_API_with_MySQL.git
+  cd GO_API_with_MySQL
+  ```
+
+3. **Configure Environment Variables**:
+
+- Set the necessary environment variables for the application:
+
+#### Bash
+
+  ```bash
+  export DB_HOST=localhost
+  export DB_PORT=3306
+  export DB_USER=newuser
+  export DB_PASSWORD=new-password
+  export DB_NAME=timedb
+  export TZ=America/Toronto
+  ```
+
+#### PowerShell
+
+  ```powershell
+  $env:DB_HOST="localhost"
+  $env:DB_PORT="3306"
+  $env:DB_USER="newuser"
+  $env:DB_PASSWORD="new-password"
+  $env:DB_NAME="timedb"
+  $env:TZ="America/Toronto"
+  ```
+
+
+4. **Build and Run the Application**:
+
+  ```bash
+  go build -o go_time_api .
+  ./go_time_api
+  ```
+
+5. **Access the API**:
+
+- The API will be available at `http://localhost:80`.
+
+By following these steps, you can manually configure and run the Go API with MySQL without using Docker Compose.
+
 ## API Endpoints
 
 ### GET /current-time
@@ -55,6 +256,7 @@ Returns the current time in Toronto timezone.
 ### GET /request-logs
 
 Returns a list of all time requests.
+
 <table>
 <tr>
 <th>If no Records were made</th>
