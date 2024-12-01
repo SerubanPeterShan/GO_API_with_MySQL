@@ -313,11 +313,11 @@ This setup ensures consistent time storage and retrieval without timezone conver
 
 ## How to read logs on DOCKER
 
-```docker
+```bash
 docker ps
 ```
 
-```docker
+```bash
 docker logs <container id>
 ```
 
